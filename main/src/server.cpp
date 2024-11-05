@@ -315,8 +315,27 @@ esp_err_t Server::sensor_post_handler(httpd_req_t *req) {
     ttf.get_laser_data(laser_values);
 #endif // ENABLE_DISTANCE_SENSOR
     for (int i = 0; i < 6; i++) {
-      char key[2];
-      snprintf(key, sizeof(key), "%d", i + 1);
+      char key[10];
+      switch (i){
+        case 0:
+          snprintf(key, sizeof(key), "backward");
+          break;
+        case 1:
+          snprintf(key, sizeof(key), "left");
+          break;
+        case 2:
+          snprintf(key, sizeof(key), "right45");
+          break;
+        case 3:
+          snprintf(key, sizeof(key), "forward");
+          break;
+        case 4:
+          snprintf(key, sizeof(key), "right");
+          break;
+        case 5:
+          snprintf(key, sizeof(key), "left45");
+          break;
+      }
       cJSON_AddNumberToObject(laser_json, key, (float)laser_values[i]);
     }
     cJSON_AddItemToObject(response_json, "laser", laser_json);

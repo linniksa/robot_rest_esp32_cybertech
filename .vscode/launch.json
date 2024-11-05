@@ -1,0 +1,48 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "ESP GDB",
+            "type": "cppdbg",
+            "request": "launch",
+            "MIMode": "gdb",
+            "cwd": "${workspaceFolder}",
+            "program": "${workspaceFolder}/build/${workspaceFolderBasename}.elf",
+            "miDebuggerPath": "${env:HOME}/.espressif/tools/xtensa-esp-elf-gdb/14.2_20240403/xtensa-esp-elf-gdb/bin/xtensa-esp32s3-elf-gdb",
+            "debugServerPath": "${env:HOME}/.espressif/tools/openocd-esp32/v0.12.0-esp32-20240318/openocd-esp32/bin/openocd",
+            "debugServerArgs": "-f board/esp32s3-builtin.cfg",
+            "serverStarted": "Listening on port [0-9]+ for gdb connections",
+            "filterStderr": true, // Magic, but nessery for work
+            "preLaunchTask": "Build",
+            "setupCommands": [
+                {
+                    "text": "target extended-remote localhost:3333"
+                },
+                {
+                    "text": "set remote hardware-watchpoint-limit 2"
+                },
+                {
+                    "text": "mon reset halt"
+                },
+                // {
+                //     "text": "mon program_esp build/bootloader/bootloader.bin 0x1000 verify"
+                // },
+                // {
+                //     "text": "mon program_esp build/partition_table/partition-table.bin 0x8000 verify"
+                // },
+                // {
+                //     "text": "mon program_esp build/${workspaceFolderBasename}.bin 0x10000 verify"
+                // },
+                // {
+                //     "text": "mon reset halt"
+                // },
+                {
+                    "text": "thb app_main"
+                },
+                {
+                    "text": "maintenance flush register-cache"
+                }
+            ],
+        }
+    ]
+}

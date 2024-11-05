@@ -1,0 +1,145 @@
+#pragma once
+#define DELAY(x) vTaskDelay((x) / portTICK_PERIOD_MS)
+
+// --- Functional config ---
+
+// #define I2C_SCAN_ENABLE
+// #define SPEED_PID_DEBUG
+// #define POSITION_PID_DEBUG
+#define ENABLE_DISTANCE_SENSOR
+#define ENABLE_MOTOR_ENCODER
+#define PCB_VERSION_WITH_ENCODER
+// #define PCB_WITH_BROKEN_PIN39
+
+// --- WiFi config ---
+#define WIFI_SSID "GL-MT1300-260"
+#define WIFI_PASS "goodlife"
+
+// --- Motor config ---
+#define MOTOR_MAX_PWM 255
+#define MOTOR_DEADBAND_PWM 10
+
+#define MOTOR_MAX_SPEED 250
+
+// // Without encoder
+// #define MOTOR_TIMEOUT 1.5
+// #define MOTOR_TARGET_ERROR 0.5
+// #define MOTOR_ANGLE_PID_KP 5.0
+// #define MOTOR_ANGLE_PID_KI 0.0
+// #define MOTOR_ANGLE_PID_KD 0.0
+// #define MOTOR_DIRECT_PID_KP 10.0
+// #define MOTOR_DIRECT_PID_KI 0.01
+// #define MOTOR_DIRECT_PID_KD 0.005
+
+// With encoder
+#define MOTOR_SPEED_PID_KP 180.0f   // !
+#define MOTOR_SPEED_PID_KI 80.0f    // !
+#define MOTOR_SPEED_PID_KD 5.0f     // !
+#define MOTOR_POSITION_PID_KP 14.0f // !
+#define MOTOR_POSITION_PID_KI 0.0f  // !
+#define MOTOR_POSITION_PID_KD 1.0f  // !
+
+#define ENCODER_PPR 7
+#define GEAR_RATIO 10
+// #define GEAR_RATIO 150
+#define MOTOR_RATIO (ENCODER_PPR * GEAR_RATIO * 4)
+#define MOTOR_RATIO_ISR (ENCODER_PPR * GEAR_RATIO)
+#define WHEEL_DIAMETER (22.0 * (14.0 / 22.0)) // (wheel D * (gear M/ gear W))
+// #define WHEEL_DIAMETER 44
+#define ENCODER_CNT_LIMIT 4'000
+#define WHEEL_GAP 90
+
+// --- Sensor config ---
+#define BNO055_ADDR_HIGH 0x29
+#define BNO055_ADDR_LOW 0x28
+#define BNO055_ADDR BNO055_ADDR_LOW
+
+#define VL53L0X_DEFAULT_ADDR 0x29
+#define SWITCH_DEFAULT_ADDR 0x70
+
+// --- GPIO CONFIG V1.0 ---
+
+#ifndef PCB_VERSION_WITH_ENCODER
+#define MOTOR_R_AIN1 GPIO_NUM_35
+#define MOTOR_R_AIN2 GPIO_NUM_36
+#define MOTOR_R_APWM GPIO_NUM_37
+#define MOTOR_L_BIN1 GPIO_NUM_38
+
+#ifdef PCB_WITH_BROKEN_PIN39
+#define MOTOR_L_BIN2 GPIO_NUM_9
+#define MOTOR_L_ENC_A GPIO_NUM_10
+#define MOTOR_L_ENC_B GPIO_NUM_11
+#define MOTOR_R_ENC_A GPIO_NUM_21
+#define MOTOR_R_ENC_B GPIO_NUM_13
+
+#else
+#define MOTOR_L_BIN2 GPIO_NUM_39
+#endif // PCB_WITH_BROKEN_PIN39
+
+#define MOTOR_L_BPWM GPIO_NUM_48
+#define MOTOR_STBY GPIO_NUM_45
+
+#define LASER_SCL GPIO_NUM_2
+#define LASER_SDA GPIO_NUM_1
+#define LASER_RST GPIO_NUM_3
+
+#define IMU_SCL GPIO_NUM_16
+#define IMU_SDA GPIO_NUM_17
+#define IMU_RST GPIO_NUM_15
+#define IMU_INT GPIO_NUM_18
+
+#define BAT_CHECK_ADC ADC_UNIT_1
+#define BAT_CHECK_CH ADC_CHANNEL_4 // GPIO_NUM_5
+
+#define LED_WIFI GPIO_NUM_6
+#define LED_ERROR GPIO_NUM_7
+
+#ifndef PCB_WITH_BROKEN_PIN39
+#define LED_1 GPIO_NUM_11
+#define LED_2 GPIO_NUM_10
+#define LED_3 GPIO_NUM_9
+#endif // !PCB_WITH_BROKEN_PIN39
+
+// Don't connect
+#define LED_1 GPIO_NUM_46
+#define LED_BT GPIO_NUM_46
+#define LED_2 GPIO_NUM_46
+#define LED_3 GPIO_NUM_46
+#endif // !PCB_VERSION_WITH_ENCODER
+
+// --- GPIO CONFIG V1.1 ---
+
+#ifdef PCB_VERSION_WITH_ENCODER
+#define MOTOR_R_APWM GPIO_NUM_17
+#define MOTOR_L_BPWM GPIO_NUM_4
+#define MOTOR_R_AIN1 GPIO_NUM_15
+#define MOTOR_R_AIN2 GPIO_NUM_16
+#define MOTOR_L_BIN1 GPIO_NUM_6
+#define MOTOR_L_BIN2 GPIO_NUM_5
+#define MOTOR_STBY GPIO_NUM_7
+
+#define MOTOR_L_ENC_A GPIO_NUM_8
+#define MOTOR_L_ENC_B GPIO_NUM_18
+#define MOTOR_R_ENC_A GPIO_NUM_41
+#define MOTOR_R_ENC_B GPIO_NUM_40
+
+#define LASER_SCL GPIO_NUM_38
+#define LASER_SDA GPIO_NUM_39
+#define LASER_RST GPIO_NUM_45
+
+#define IMU_SCL GPIO_NUM_21
+#define IMU_SDA GPIO_NUM_47
+#define IMU_RST GPIO_NUM_13
+#define IMU_INT GPIO_NUM_14
+
+#define LED_1 GPIO_NUM_42
+#define LED_2 GPIO_NUM_12
+#define LED_3 GPIO_NUM_11
+#define LED_WIFI GPIO_NUM_3
+#define LED_BT GPIO_NUM_9
+#define LED_ERROR GPIO_NUM_10
+
+#define BAT_CHECK_ADC ADC_UNIT_1
+#define BAT_CHECK_CH ADC_CHANNEL_1 // GPIO_NUM_2
+#define RADIO_MODE GPIO_NUM_48
+#endif // PCB_VERSION_WITH_ENCODER

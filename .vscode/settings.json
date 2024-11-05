@@ -1,0 +1,31 @@
+{
+    "files.associations": {
+        "*.embeddedhtml": "html",
+        "compare": "cpp",
+        "cstdint": "cpp",
+        "array": "cpp",
+        "string": "cpp",
+        "string_view": "cpp",
+        "span": "cpp",
+        "bitset": "cpp",
+        "algorithm": "cpp",
+        "format": "cpp",
+        "*.tcc": "cpp",
+        "charconv": "cpp",
+        "chrono": "cpp",
+        "optional": "cpp",
+        "ratio": "cpp",
+        "system_error": "cpp",
+        "functional": "cpp",
+        "regex": "cpp",
+        "tuple": "cpp",
+        "type_traits": "cpp",
+        "utility": "cpp",
+        "unordered_map": "cpp",
+        "fstream": "cpp",
+        "istream": "cpp",
+        "numeric": "cpp",
+        "ostream": "cpp",
+        "sstream": "cpp"
+    }
+}

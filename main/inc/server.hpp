@@ -19,6 +19,7 @@ private:
   }
 
   static esp_err_t sensor_post_handler(httpd_req_t *req);
+  static esp_err_t sensor_config_post_handler(httpd_req_t *req);
   static esp_err_t motor_put_handler(httpd_req_t *req);
   static esp_err_t move_put_handler(httpd_req_t *req);
 
@@ -36,6 +37,11 @@ private:
                               .method = HTTP_POST,
                               .handler = sensor_post_handler,
                               .user_ctx = NULL};
+
+  const httpd_uri_t sensor_config = {.uri = "/sensor_config",
+                              .method = HTTP_POST,
+                              .handler = sensor_config_post_handler,
+                              .user_ctx = NULL};              
 
 public:
   void init();

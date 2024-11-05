@@ -93,6 +93,7 @@ void Server::start_rest_server(void) {
     httpd_register_uri_handler(server, &motor);
     httpd_register_uri_handler(server, &sensor);
     httpd_register_uri_handler(server, &move);
+    httpd_register_uri_handler(server, &sensor_config);
     ESP_LOGI(TAG, "REST server started.");
   } else
     ESP_LOGE(TAG, "Error starting server!");
@@ -314,9 +315,7 @@ esp_err_t Server::sensor_post_handler(httpd_req_t *req) {
     ttf.get_laser_data(laser_values);
 #endif // ENABLE_DISTANCE_SENSOR
     for (int i = 0; i < 6; i++) {
-      char key[2];
-      snprintf(key, sizeof(key), "%d", i + 1);
-      cJSON_AddNumberToObject(laser_json, key, (float)laser_values[i]);
+      cJSON_AddNumberToObject(laser_json, ttf.sensor_names[i], (float)laser_values[i]);
     }
     cJSON_AddItemToObject(response_json, "laser", laser_json);
   }
@@ -345,6 +344,76 @@ esp_err_t Server::sensor_post_handler(httpd_req_t *req) {
   cJSON_Delete(response_json);
   cJSON_Delete(json);
 
+  return ESP_OK;
+}
+
+esp_err_t Server::sensor_config_post_handler(httpd_req_t *req) {
+  char content[1000];
+  int ret = httpd_req_recv(req, content, sizeof(content) - 1);
+  if (ret <= 0) {
+    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+                        "Failed to receive request content");
+    return ESP_FAIL;
+  }
+  content[ret] = '\0';
+
+  cJSON *json = cJSON_Parse(content);
+  if (json == NULL) {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+    return ESP_FAIL;
+  }
+
+  cJSON *json_id = cJSON_GetObjectItem(json, "id");
+  if (!cJSON_IsString(json_id) || (json_id->valuestring == NULL)) {
+    cJSON_Delete(json);
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST,
+                        "Missing or invalid 'id' field");
+    return ESP_FAIL;
+  }
+
+  if (strcmp(json_id->valuestring, chip_id) != 0) {
+    cJSON_Delete(json);
+    httpd_resp_send_err(req, HTTPD_403_FORBIDDEN, "Invalid ID");
+    return ESP_FAIL;
+  }
+
+  cJSON *json_interval = cJSON_GetObjectItem(json, "interval");
+  if (!cJSON_IsNumber(json_interval) || json_interval->valueint < 20 || json_interval->valueint > 200) {
+    cJSON_Delete(json);
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid interval");
+    return ESP_FAIL;
+  }
+
+  cJSON *json_enabled_sensors = cJSON_GetObjectItem(json, "enabled_sensors");
+  if (!cJSON_IsArray(json_enabled_sensors)) {
+    cJSON_Delete(json);
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Sensors selection must be an array");
+    return ESP_FAIL;
+  }
+
+  bool enabled_sensors[6] = {0};
+
+  cJSON *sensor_name;
+  cJSON_ArrayForEach(sensor_name, json_enabled_sensors) {
+    for(int i = 0;i<6;i++){
+      if(strcmp(sensor_name->valuestring, ttf.sensor_names[i]) == 0){
+        enabled_sensors[i] = true;
+        break;
+      }
+      if(i == 5){
+        cJSON_Delete(json);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid sensors selection");
+        return ESP_FAIL;
+      }
+    }
+  }
+
+  ttf.set_interval(json_interval->valueint);
+  ttf.set_enabled_sensors(enabled_sensors);
+  
+  cJSON_Delete(json);
+
+  httpd_resp_sendstr(req, "");
   return ESP_OK;
 }
 

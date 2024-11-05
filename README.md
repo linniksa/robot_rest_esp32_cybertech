@@ -42,7 +42,7 @@
 	"imu": {"roll": 20, "pitch": 30, "yaw": 40},
     "motor": {"left_pwm": 20, "right_pwm": -30},
 } // Запрос all.
-{"laser": {"1": 12, "2": 17, "3": 20, "4": 100, "5": 100, "6": 100}} // Дальномер mm.
+{"laser": {"left": 12, "left45": 17, "forward": 20, "right45": 100, "right": 100, "backward": 100}} // Дальномер mm.
 {"imu": {"roll": 20, "pitch": 30, "yaw": 40}} // imu - поворот в пространстве относительно конкретной оси в градусах.
 {"motor": {"left_pwm": 20, "right_pwm": -30}} // PWM который физически выставлен на моторе в данный момент
 ```
@@ -52,6 +52,17 @@
 `pitch` и `yaw` имею значения от -180 .. 180 то угол смещения от положения во время включения сенсора. `roll` имеет значения от 0 ... 360 это поворот по оси Z. Все измеряется в градусах.
 
 В случае если значение за пределом видимости дальномера он вернет `65535`.
+
+2) Запрос настройки сенсоров - `POST` - `/sensor_config`
+
+```json
+{
+    "id": "F535AF9628574A53",
+    "interval": 33,
+    "enabled_sensors": ["left", "right", "forward"]
+}
+```
+interval - интервал в мс от 20 до 200
 
 ## Сборка проекта
 
@@ -95,6 +106,7 @@ curl -X PUT -H "Content-Type: application/json" -d '{"id": "3036393632076C54", "
 curl -X POST -H "Content-Type: application/json" -d '{"id": "3036393632076C54", "type": "all"}' http://192.168.1.179/sensor
 curl -X POST -H "Content-Type: application/json" -d '{"id": "3036393632076C54", "type": "laser"}' http://192.168.1.179/sensor
 curl -X POST -H "Content-Type: application/json" -d '{"id": "3036393632076C54", "type": "imu"}' http://192.168.1.179/sensor
+curl -X POST -H "Content-Type: application/json" -d '{"id": "F535AF9628574A53", "interval": 20, "enabled_sensors": ["left", "right", "forward"]}' http://192.168.69.144/sensor_config
 ```
 
 ----

@@ -16,6 +16,19 @@ Ttf::Ttf() {}
 
 i2c_master_dev_handle_t i2c_sw_handle;
 i2c_master_dev_handle_t i2c_lv53l0x_handle;
+bool interval_changed = false;
+uint8_t new_interval = 200;
+
+void Ttf::set_enabled_sensors(bool enabled[6]){
+  for(int i = 0;i<6;i++){
+    enabled_sensors[i] = enabled[i];
+  }
+}
+
+void Ttf::set_interval(uint8_t interval){
+  new_interval = interval;
+  interval_changed = true;
+}
 
 void Ttf::get_laser_data(uint16_t laser_buff[10]) {
   for (size_t i = 0; i < 10; i++)
@@ -66,7 +79,6 @@ void Ttf::init() {
 }
 
 void Ttf::task() {
-  VL53L0X sensor[6];
 
   for (uint8_t i = 0; i < 6; i++) {
     i2c_switch_to_ch(i);
@@ -79,6 +91,8 @@ void Ttf::task() {
 
   while (1) {
     for (uint8_t i = 0; i < 6; i++) {
+      if (!enabled_sensors[i]) continue;
+
       i2c_switch_to_ch(i);
 
       uint16_t buff = sensor[i].readRangeSingleMillimeters();
@@ -91,10 +105,17 @@ void Ttf::task() {
         ESP_LOGW(TAG, "Sensor %d, timeout...", i);
     }
 
+    if(interval_changed){
+      for (uint8_t i = 0; i < 6; i++) {
+        i2c_switch_to_ch(i);
+        sensor[i].setMeasurementTimingBudget(new_interval*1000);
+      }
+    }
+
     // ESP_LOGI(TAG, "Sensor -> 1:%d - 2:%d - 3:%d - 4:%d - 5:%d - 6:%d.",
     //          laser_values[0], laser_values[1], laser_values[2],
     //          laser_values[3], laser_values[4], laser_values[5]);
 
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }

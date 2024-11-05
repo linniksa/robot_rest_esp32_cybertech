@@ -5,6 +5,7 @@
 #include "driver/i2c_master.h"
 #include "vl53l0x.hpp"
 #include <cstdint>
+#include "config.hpp"
 
 class Ttf {
 private:
@@ -16,10 +17,10 @@ private:
   esp_err_t i2c_switch_to_ch(uint8_t ch);
   uint16_t laser_values[10];
   VL53L0X sensor[6];
-  bool enabled_sensors[6];
+  bool enabled_sensors[6] = {true,true,true,true,true,true};
 
 public:
-  const char* sensor_names[];
+  static const constexpr char* const sensor_names[] = VL53L0X_ORDER;
   Ttf();
   ~Ttf();
   void init();

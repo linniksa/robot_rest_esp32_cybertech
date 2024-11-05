@@ -311,11 +311,14 @@ esp_err_t Server::sensor_post_handler(httpd_req_t *req) {
   if (strcmp(type, "all") == 0 || strcmp(type, "laser") == 0) {
     cJSON *laser_json = cJSON_CreateObject();
     uint16_t laser_values[10] = {};
+    uint64_t laser_timestamps[10] = {};
 #ifdef ENABLE_DISTANCE_SENSOR
-    ttf.get_laser_data(laser_values);
+    ttf.get_laser_data(laser_values, laser_timestamps);
 #endif // ENABLE_DISTANCE_SENSOR
     for (int i = 0; i < 6; i++) {
       cJSON_AddNumberToObject(laser_json, ttf.sensor_names[i], (float)laser_values[i]);
+      char timestamp_buff[100]; snprintf(timestamp_buff, sizeof(timestamp_buff), "%s_timestamp", ttf.sensor_names[i]);
+      cJSON_AddNumberToObject(laser_json, timestamp_buff, (float)laser_timestamps[i]);
     }
     cJSON_AddItemToObject(response_json, "laser", laser_json);
   }

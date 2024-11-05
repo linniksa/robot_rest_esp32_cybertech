@@ -338,6 +338,16 @@ esp_err_t Server::sensor_post_handler(httpd_req_t *req) {
     cJSON_AddItemToObject(response_json, "motor", motor_json);
   }
 
+  if (strcmp(type, "all") == 0 || strcmp(type, "encoders") == 0) {
+    cJSON *motor_json = cJSON_CreateObject();
+    cJSON_AddNumberToObject(motor_json, "left_encoder_delta_sum", robot.left_encoder_delta_sum);
+    cJSON_AddNumberToObject(motor_json, "right_encoder_delta_sum", robot.right_encoder_delta_sum);
+    cJSON_AddItemToObject(response_json, "encoders", motor_json);
+
+    robot.left_encoder_delta_sum = 0;
+    robot.right_encoder_delta_sum = 0;
+  }
+
   const char *response_str = cJSON_Print(response_json);
 
   httpd_resp_set_type(req, "application/json");

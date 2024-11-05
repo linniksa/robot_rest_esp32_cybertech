@@ -17,6 +17,25 @@ Ttf::Ttf() {}
 i2c_master_dev_handle_t i2c_sw_handle;
 i2c_master_dev_handle_t i2c_lv53l0x_handle;
 
+VL53L0X sensor[6];
+bool enabled_sensors[6] = {true,true,true,true,true,true};
+
+void Ttf::set_enabled_sensors(bool l,bool l45,bool f,bool r45,bool r,bool b){
+  enabled_sensors[0] = b;
+  enabled_sensors[1] = l;
+  enabled_sensors[2] = r45;
+  enabled_sensors[3] = f;
+  enabled_sensors[4] = r;
+  enabled_sensors[5] = l45;
+}
+
+void Ttf::set_interval(uint8_t interval){
+  for (uint8_t i = 0; i < 6; i++) {
+    i2c_switch_to_ch(i);
+    sensor[i].setMeasurementTimingBudget(interval*1000);
+  }
+}
+
 void Ttf::get_laser_data(uint16_t laser_buff[10]) {
   for (size_t i = 0; i < 10; i++)
     laser_buff[i] = laser_values[i];
@@ -66,7 +85,6 @@ void Ttf::init() {
 }
 
 void Ttf::task() {
-  VL53L0X sensor[6];
 
   for (uint8_t i = 0; i < 6; i++) {
     i2c_switch_to_ch(i);
@@ -79,6 +97,8 @@ void Ttf::task() {
 
   while (1) {
     for (uint8_t i = 0; i < 6; i++) {
+      if (!enabled_sensors[i]) continue;
+
       i2c_switch_to_ch(i);
 
       uint16_t buff = sensor[i].readRangeSingleMillimeters();
@@ -95,6 +115,6 @@ void Ttf::task() {
     //          laser_values[0], laser_values[1], laser_values[2],
     //          laser_values[3], laser_values[4], laser_values[5]);
 
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    vTaskDelay(10 / portTICK_PERIOD_MS);
   }
 }

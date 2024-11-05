@@ -93,6 +93,7 @@ void Server::start_rest_server(void) {
     httpd_register_uri_handler(server, &motor);
     httpd_register_uri_handler(server, &sensor);
     httpd_register_uri_handler(server, &move);
+    httpd_register_uri_handler(server, &sensor_config);
     ESP_LOGI(TAG, "REST server started.");
   } else
     ESP_LOGE(TAG, "Error starting server!");
@@ -345,6 +346,77 @@ esp_err_t Server::sensor_post_handler(httpd_req_t *req) {
   cJSON_Delete(response_json);
   cJSON_Delete(json);
 
+  return ESP_OK;
+}
+
+esp_err_t Server::sensor_config_post_handler(httpd_req_t *req) {
+  char content[1000];
+  int ret = httpd_req_recv(req, content, sizeof(content) - 1);
+  if (ret <= 0) {
+    httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR,
+                        "Failed to receive request content");
+    return ESP_FAIL;
+  }
+  content[ret] = '\0';
+
+  cJSON *json = cJSON_Parse(content);
+  if (json == NULL) {
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+    return ESP_FAIL;
+  }
+
+  cJSON *json_id = cJSON_GetObjectItem(json, "id");
+  if (!cJSON_IsString(json_id) || (json_id->valuestring == NULL)) {
+    cJSON_Delete(json);
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST,
+                        "Missing or invalid 'id' field");
+    return ESP_FAIL;
+  }
+
+  if (strcmp(json_id->valuestring, chip_id) != 0) {
+    cJSON_Delete(json);
+    httpd_resp_send_err(req, HTTPD_403_FORBIDDEN, "Invalid ID");
+    return ESP_FAIL;
+  }
+
+  cJSON *json_interval = cJSON_GetObjectItem(json, "interval");
+  cJSON *json_left = cJSON_GetObjectItem(json, "left");
+  cJSON *json_left45 = cJSON_GetObjectItem(json, "left45");
+  cJSON *json_forward = cJSON_GetObjectItem(json, "forward");
+  cJSON *json_right45 = cJSON_GetObjectItem(json, "right45");
+  cJSON *json_right = cJSON_GetObjectItem(json, "right");
+  cJSON *json_backward = cJSON_GetObjectItem(json, "backward");
+
+  if (!cJSON_IsNumber(json_interval) || json_interval->valueint < 20 || json_interval->valueint > 200) {
+    cJSON_Delete(json);
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid interval");
+    return ESP_FAIL;
+  }
+
+  if (!cJSON_IsBool(json_left) || 
+      !cJSON_IsBool(json_left45) || 
+      !cJSON_IsBool(json_forward) || 
+      !cJSON_IsBool(json_right45) || 
+      !cJSON_IsBool(json_right) || 
+      !cJSON_IsBool(json_backward)) {
+    cJSON_Delete(json);
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid sensors selection");
+    return ESP_FAIL;
+  }
+
+  ttf.set_interval(json_interval->valueint);
+  ttf.set_enabled_sensors(
+    cJSON_IsTrue(json_left), 
+    cJSON_IsTrue(json_left45), 
+    cJSON_IsTrue(json_forward), 
+    cJSON_IsTrue(json_right45), 
+    cJSON_IsTrue(json_right), 
+    cJSON_IsTrue(json_backward)
+  );
+  
+  cJSON_Delete(json);
+
+  httpd_resp_sendstr(req, "");
   return ESP_OK;
 }
 

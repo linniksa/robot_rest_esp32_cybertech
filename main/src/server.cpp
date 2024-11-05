@@ -334,7 +334,7 @@ esp_err_t Server::sensor_post_handler(httpd_req_t *req) {
   if (strcmp(type, "all") == 0 || strcmp(type, "motor") == 0) {
     cJSON *motor_json = cJSON_CreateObject();
     cJSON_AddNumberToObject(motor_json, "left_pwm", robot.left_pwm);
-    cJSON_AddNumberToObject(motor_json, "right_pwm", robot.left_pwm);
+    cJSON_AddNumberToObject(motor_json, "right_pwm", robot.right_pwm);
     cJSON_AddItemToObject(response_json, "motor", motor_json);
   }
 

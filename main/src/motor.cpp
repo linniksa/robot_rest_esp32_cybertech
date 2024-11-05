@@ -208,11 +208,8 @@ int Robot::get_delta_pulse(pcnt_unit_handle_t pcnt_unit, int &last_pulse) {
 
   pcnt_unit_get_count(pcnt_unit, &pulse);
   int delta = pulse - last_pulse;
-  if (delta > ENCODER_CNT_LIMIT / 2)
-    delta = -(ENCODER_CNT_LIMIT - pulse + last_pulse);
-  if (delta < -ENCODER_CNT_LIMIT / 2)
-    delta = ENCODER_CNT_LIMIT - last_pulse + pulse;
-
+  if (delta > ENCODER_CNT_LIMIT / 2) delta -= ENCODER_CNT_LIMIT;   //(deprecated) = -(ENCODER_CNT_LIMIT - pulse + last_pulse);
+  if (delta < -ENCODER_CNT_LIMIT / 2) delta += ENCODER_CNT_LIMIT;  //(deprecated) = ENCODER_CNT_LIMIT - last_pulse + pulse;
   last_pulse = pulse;
   return delta;
 }
@@ -233,7 +230,7 @@ void Robot::task() {
   Motor left_motor;
   Motor right_motor;
 
-  left_motor.set_name("left motor");
+  left_motor.set_name("left_motor");
   right_motor.set_name("right_motor");
 
   left_motor.set_control_func(left_motor_set, left_get_delta_pulse);
@@ -332,13 +329,11 @@ void Motor::start() {
 
 void Motor::task() {
 
-  PID speed_pid(speed_.kp, speed_.ki, speed_.kd, -(float)MOTOR_MAX_PWM,
-                (float)MOTOR_MAX_PWM);
+  PID speed_pid(speed_.kp, speed_.ki, speed_.kd, -(float)MOTOR_MAX_PWM, (float)MOTOR_MAX_PWM);
   speed_pid.set_target(0.0);
   speed_pid.setIntegralLimits(-10.0f, 10.0f);
 
-  PID position_pid(position_.kp, position_.ki, position_.kd,
-                   -(float)MOTOR_MAX_PWM, (float)MOTOR_MAX_PWM);
+  PID position_pid(position_.kp, position_.ki, position_.kd, -(float)MOTOR_MAX_PWM, (float)MOTOR_MAX_PWM);
   position_pid.set_target(0.0);
   position_pid.setIntegralLimits(-100.0f, 100.0f);
 
@@ -391,8 +386,7 @@ void Motor::task() {
     if (abs(out_speed) > abs(speed_limit))
       out_speed = speed_limit;
 
-    if (abs(abs(global_position_) - abs(target_position_)) <
-        1.0 / WHEEL_DIAMETER)
+    if (abs(abs(global_position_) - abs(target_position_)) < 1.0 / WHEEL_DIAMETER)
       motor_working_flag_ = 0;
 
       // --- Speed set ---

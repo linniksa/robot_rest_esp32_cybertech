@@ -315,28 +315,7 @@ esp_err_t Server::sensor_post_handler(httpd_req_t *req) {
     ttf.get_laser_data(laser_values);
 #endif // ENABLE_DISTANCE_SENSOR
     for (int i = 0; i < 6; i++) {
-      char key[10];
-      switch (i){
-        case 0:
-          snprintf(key, sizeof(key), "backward");
-          break;
-        case 1:
-          snprintf(key, sizeof(key), "left");
-          break;
-        case 2:
-          snprintf(key, sizeof(key), "right45");
-          break;
-        case 3:
-          snprintf(key, sizeof(key), "forward");
-          break;
-        case 4:
-          snprintf(key, sizeof(key), "right");
-          break;
-        case 5:
-          snprintf(key, sizeof(key), "left45");
-          break;
-      }
-      cJSON_AddNumberToObject(laser_json, key, (float)laser_values[i]);
+      cJSON_AddNumberToObject(laser_json, ttf.sensor_names[i], (float)laser_values[i]);
     }
     cJSON_AddItemToObject(response_json, "laser", laser_json);
   }
@@ -399,39 +378,38 @@ esp_err_t Server::sensor_config_post_handler(httpd_req_t *req) {
   }
 
   cJSON *json_interval = cJSON_GetObjectItem(json, "interval");
-  cJSON *json_left = cJSON_GetObjectItem(json, "left");
-  cJSON *json_left45 = cJSON_GetObjectItem(json, "left45");
-  cJSON *json_forward = cJSON_GetObjectItem(json, "forward");
-  cJSON *json_right45 = cJSON_GetObjectItem(json, "right45");
-  cJSON *json_right = cJSON_GetObjectItem(json, "right");
-  cJSON *json_backward = cJSON_GetObjectItem(json, "backward");
-
   if (!cJSON_IsNumber(json_interval) || json_interval->valueint < 20 || json_interval->valueint > 200) {
     cJSON_Delete(json);
     httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid interval");
     return ESP_FAIL;
   }
 
-  if (!cJSON_IsBool(json_left) || 
-      !cJSON_IsBool(json_left45) || 
-      !cJSON_IsBool(json_forward) || 
-      !cJSON_IsBool(json_right45) || 
-      !cJSON_IsBool(json_right) || 
-      !cJSON_IsBool(json_backward)) {
+  cJSON *json_enabled_sensors = cJSON_GetObjectItem(json, "enabled_sensors");
+  if (!cJSON_IsArray(json_enabled_sensors)) {
     cJSON_Delete(json);
-    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid sensors selection");
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid interval");
     return ESP_FAIL;
   }
 
+  bool enabled_sensors[6] = {0};
+
+  cJSON *sensor_name;
+  cJSON_ArrayForEach(sensor_name, json_enabled_sensors) {
+    for(int i = 0;i<6;i++){
+      if(strcmp(sensor_name->valuestring, ttf.sensor_names[i]) == 0){
+        enabled_sensors[i] = true;
+        break;
+      }
+      if(i == 5){
+        cJSON_Delete(json);
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid sensors selection");
+        return ESP_FAIL;
+      }
+    }
+  }
+
   ttf.set_interval(json_interval->valueint);
-  ttf.set_enabled_sensors(
-    cJSON_IsTrue(json_left), 
-    cJSON_IsTrue(json_left45), 
-    cJSON_IsTrue(json_forward), 
-    cJSON_IsTrue(json_right45), 
-    cJSON_IsTrue(json_right), 
-    cJSON_IsTrue(json_backward)
-  );
+  ttf.set_enabled_sensors(enabled_sensors);
   
   cJSON_Delete(json);
 

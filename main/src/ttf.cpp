@@ -20,13 +20,12 @@ i2c_master_dev_handle_t i2c_lv53l0x_handle;
 VL53L0X sensor[6];
 bool enabled_sensors[6] = {true,true,true,true,true,true};
 
-void Ttf::set_enabled_sensors(bool l,bool l45,bool f,bool r45,bool r,bool b){
-  enabled_sensors[0] = b;
-  enabled_sensors[1] = l;
-  enabled_sensors[2] = r45;
-  enabled_sensors[3] = f;
-  enabled_sensors[4] = r;
-  enabled_sensors[5] = l45;
+const char* sensor_names[] = VL53L0X_ORDER;
+
+void Ttf::set_enabled_sensors(bool enabled[6]){
+  for(int i = 0;i<6;i++){
+    enabled_sensors[i] = enabled[i];
+  }
 }
 
 void Ttf::set_interval(uint8_t interval){

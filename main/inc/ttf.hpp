@@ -19,10 +19,11 @@ private:
   bool enabled_sensors[6];
 
 public:
+  const char* sensor_names[];
   Ttf();
   ~Ttf();
   void init();
   void get_laser_data(uint16_t laser_buff[10]);
-  void set_enabled_sensors(bool l,bool l45,bool f,bool r45,bool r,bool b);
+  void set_enabled_sensors(bool enabled[6]);
   void set_interval(uint8_t interval);
 };

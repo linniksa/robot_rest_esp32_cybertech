@@ -54,6 +54,7 @@
 #define BNO055_ADDR_LOW 0x28
 #define BNO055_ADDR BNO055_ADDR_LOW
 
+#define VL53L0X_ORDER {"backward", "right", "right45", "forward", "left45", "left"}
 #define VL53L0X_DEFAULT_ADDR 0x29
 #define SWITCH_DEFAULT_ADDR 0x70
 

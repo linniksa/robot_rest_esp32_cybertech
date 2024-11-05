@@ -387,7 +387,7 @@ esp_err_t Server::sensor_config_post_handler(httpd_req_t *req) {
   cJSON *json_enabled_sensors = cJSON_GetObjectItem(json, "enabled_sensors");
   if (!cJSON_IsArray(json_enabled_sensors)) {
     cJSON_Delete(json);
-    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid interval");
+    httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Sensors selection must be an array");
     return ESP_FAIL;
   }
 

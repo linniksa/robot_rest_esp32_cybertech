@@ -166,7 +166,6 @@ void Robot::pwm_init(gpio_num_t in1_pin, gpio_num_t in2_pin, ledc_timer_t timer,
 
 // --- Function for left and right motor ---
 
-void Robot::left_motor_set(int16_t left_motor_pwm) {
 void Robot::left_motor_set(int16_t left_motor_pwm, int16_t* left_pwm_field) {
   ledc_channel_t chanel = LEDC_CHANNEL_1;
   if (left_motor_pwm > 0) {

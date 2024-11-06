@@ -34,7 +34,7 @@ void Ttf::set_interval(uint8_t interval){
 void Ttf::get_laser_data(uint16_t laser_buff[10], uint64_t laser_timestamps_buff[10]) {
   for (size_t i = 0; i < 10; i++) {
     laser_buff[i] = laser_values[i];
-    laser_timestamps_buff[0] = laser_timestamps[i];
+    laser_timestamps_buff[i] = laser_timestamps[i];
   }
 }
 

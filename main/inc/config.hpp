@@ -15,6 +15,13 @@
 #define WIFI_SSID "GL-MT1300-260"
 #define WIFI_PASS "goodlife"
 
+#ifndef PCB_VERSION_WITH_ENCODER
+#define MOTOR_L_ENC_A GPIO_NUM_47
+#define MOTOR_L_ENC_B GPIO_NUM_47
+#define MOTOR_R_ENC_A GPIO_NUM_47
+#define MOTOR_R_ENC_B GPIO_NUM_47
+#endif
+
 // --- Motor config ---
 #define MOTOR_MAX_PWM 255
 #define MOTOR_DEADBAND_PWM 10

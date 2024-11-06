@@ -19,6 +19,10 @@ extern Imu imu;
 // TODO: Move it inside class Robot
 pcnt_unit_handle_t pcnt_unit_left;
 pcnt_unit_handle_t pcnt_unit_right;
+bool pid_enabled = true;
+
+Motor left_motor;
+Motor right_motor;
 
 Robot::~Robot() {}
 Robot::Robot() {
@@ -238,12 +242,55 @@ int Robot::left_get_delta_pulse(int16_t* left_encoder_field) {
   return pulse;
 }
 
+
+TimerHandle_t motor_l_timer;
+TimerHandle_t motor_r_timer;
+
+void motor_l_timer_callback(TimerHandle_t xTimer) {
+  Robot *pInstance = static_cast<Robot *>(pvTimerGetTimerID(xTimer));
+  if (pInstance != nullptr)
+    pInstance->left_motor_set(0, left_motor.pwm_value);
+}
+
+void motor_r_timer_callback(TimerHandle_t xTimer) {
+  Robot *pInstance = static_cast<Robot *>(pvTimerGetTimerID(xTimer));
+  if (pInstance != nullptr)
+    pInstance->right_motor_set(0, right_motor.pwm_value);
+}
+
+void Robot::set_PWM(int left, int right, int left_time, int right_time){
+  pid_enabled = false;
+  left_motor_set(left, left_motor.pwm_value);
+  right_motor_set(right, right_motor.pwm_value);
+  if (left_time == 0) {
+    if (motor_l_timer != NULL)
+      xTimerStop(motor_l_timer, 0);
+  } else {
+    if (motor_l_timer != NULL)
+      xTimerChangePeriod(motor_l_timer, pdMS_TO_TICKS(left_time), 0);
+    else {
+      motor_l_timer = xTimerCreate("motor_l_timer", pdMS_TO_TICKS(left_time),
+                                   pdFALSE, this, motor_l_timer_callback);
+      xTimerStart(motor_l_timer, 0);
+    }
+  }
+  if (right_time == 0) {
+    if (motor_r_timer != NULL)
+      xTimerStop(motor_r_timer, 0);
+  } else {
+    if (motor_r_timer != NULL)
+      xTimerChangePeriod(motor_r_timer, pdMS_TO_TICKS(right_time), 0);
+    else {
+      motor_r_timer = xTimerCreate("motor_r_timer", pdMS_TO_TICKS(right_time),
+                                   pdFALSE, this, motor_r_timer_callback);
+      xTimerStart(motor_r_timer, 0);
+    }
+  }
+}
+
 // --- Control task ---
 
 void Robot::task() {
-  Motor left_motor;
-  Motor right_motor;
-
   left_motor.set_name("left_motor");
   right_motor.set_name("right_motor");
 
@@ -331,6 +378,7 @@ void Motor::set_name(const char *str) { strcpy(name_, str); }
 void Motor::set_speed_pid(pid speed) { speed_ = speed; }
 void Motor::set_position_pid(pid position) { position_ = position; }
 void Motor::set_target(float speed, float position) {
+  pid_enabled = true;
   target_speed_ = speed;
   target_position_ = global_position_ + position;
   change_target_flag_ = 1;
@@ -368,6 +416,15 @@ void Motor::task() {
   float filtered_global_position = 0.0f;
 
   while (true) {
+
+    if(!pid_enabled){
+      int delta_pulse = get_delta_pulse_(encoder_delta_sum_value);
+      global_position_ += ((float)delta_pulse / (float)MOTOR_RATIO);
+      target_position_ = global_position_;
+      vTaskDelay(pdMS_TO_TICKS(10));
+      continue;
+    }
+
     // --- Change target ---
     if (change_target_flag_) {
 

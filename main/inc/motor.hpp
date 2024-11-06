@@ -24,10 +24,10 @@ private:
                         gpio_num_t gpio_enc_b);
 
   static int get_delta_pulse(pcnt_unit_handle_t pcnt_unit, int &last_pulse);
-  static void right_motor_set(int16_t right_motor_pwm);
-  static void left_motor_set(int16_t left_motor_pwm);
-  static int right_get_delta_pulse();
-  static int left_get_delta_pulse();
+  static void right_motor_set(int16_t right_motor_pwm, int16_t* right_pwm_field);
+  static void left_motor_set(int16_t left_motor_pwm, int16_t* left_pwm_field);
+  static int right_get_delta_pulse(int16_t* right_encoder_field);
+  static int left_get_delta_pulse(int16_t* left_encoder_field);
 
 public:
   enum move_directions { forward, backward, left, right, breack, invalid };
@@ -41,7 +41,9 @@ public:
   QueueHandle_t cmds_queue;
 
   int16_t left_pwm = 0;
+  int16_t left_encoder_delta_sum = 0;
   int16_t right_pwm = 0;
+  int16_t right_encoder_delta_sum = 0;
   uint8_t break_flag = 0;
 
   Robot();
@@ -68,7 +70,10 @@ public:
     float kd = 0.0;
   };
 
-  void set_control_func(void (*set_pwm_func)(int16_t), int (*get_pulse_func)());
+  int16_t* pwm_value;
+  int16_t* encoder_delta_sum_value;
+
+  void set_control_func(void (*set_pwm_func)(int16_t, int16_t*), int (*get_pulse_func)(int16_t*));
   void set_speed_pid(pid speed);
   void set_position_pid(pid position);
   void set_target(float speed, float position);
@@ -92,6 +97,6 @@ private:
   }
   void task();
 
-  void (*set_pwm_)(int16_t);
-  int (*get_delta_pulse_)();
+  void (*set_pwm_)(int16_t, int16_t*);
+  int (*get_delta_pulse_)(int16_t*);
 };

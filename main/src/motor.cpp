@@ -166,7 +166,7 @@ void Robot::pwm_init(gpio_num_t in1_pin, gpio_num_t in2_pin, ledc_timer_t timer,
 
 // --- Function for left and right motor ---
 
-void Robot::left_motor_set(int16_t left_motor_pwm) {
+void Robot::left_motor_set(int16_t left_motor_pwm, int16_t* left_pwm_field) {
   ledc_channel_t chanel = LEDC_CHANNEL_1;
   if (left_motor_pwm > 0) {
     gpio_set_level(MOTOR_L_BIN1, 0);
@@ -180,11 +180,14 @@ void Robot::left_motor_set(int16_t left_motor_pwm) {
   }
   if (left_motor_pwm < 0)
     left_motor_pwm = 0 - left_motor_pwm;
+
+  *left_pwm_field = left_motor_pwm;
+
   ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, chanel, left_motor_pwm));
   ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, chanel));
 }
 
-void Robot::right_motor_set(int16_t right_motor_pwm) {
+void Robot::right_motor_set(int16_t right_motor_pwm, int16_t* right_pwm_field) {
   ledc_channel_t chanel = LEDC_CHANNEL_0;
   if (right_motor_pwm > 0) {
     gpio_set_level(MOTOR_R_AIN1, 1);
@@ -198,6 +201,9 @@ void Robot::right_motor_set(int16_t right_motor_pwm) {
   }
   if (right_motor_pwm < 0)
     right_motor_pwm = 0 - right_motor_pwm;
+
+  *right_pwm_field = right_motor_pwm;
+
   ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, chanel, right_motor_pwm));
   ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, chanel));
 }
@@ -208,23 +214,28 @@ int Robot::get_delta_pulse(pcnt_unit_handle_t pcnt_unit, int &last_pulse) {
 
   pcnt_unit_get_count(pcnt_unit, &pulse);
   int delta = pulse - last_pulse;
-  if (delta > ENCODER_CNT_LIMIT / 2)
-    delta = -(ENCODER_CNT_LIMIT - pulse + last_pulse);
-  if (delta < -ENCODER_CNT_LIMIT / 2)
-    delta = ENCODER_CNT_LIMIT - last_pulse + pulse;
-
+  if (delta > ENCODER_CNT_LIMIT / 2) delta -= ENCODER_CNT_LIMIT;   //(deprecated) = -(ENCODER_CNT_LIMIT - pulse + last_pulse);
+  if (delta < -ENCODER_CNT_LIMIT / 2) delta += ENCODER_CNT_LIMIT;  //(deprecated) = ENCODER_CNT_LIMIT - last_pulse + pulse;
   last_pulse = pulse;
   return delta;
 }
 
-int Robot::right_get_delta_pulse() {
+int Robot::right_get_delta_pulse(int16_t* right_encoder_field) {
   static int last_pulse = 0;
-  return get_delta_pulse(pcnt_unit_right, last_pulse);
+  int pulse = get_delta_pulse(pcnt_unit_right, last_pulse);
+
+  *right_encoder_field += pulse;
+
+  return pulse;
 }
 
-int Robot::left_get_delta_pulse() {
+int Robot::left_get_delta_pulse(int16_t* left_encoder_field) {
   static int last_pulse = 0;
-  return get_delta_pulse(pcnt_unit_left, last_pulse);
+  int pulse = get_delta_pulse(pcnt_unit_left, last_pulse);
+
+  *left_encoder_field += pulse;
+
+  return pulse;
 }
 
 // --- Control task ---
@@ -233,10 +244,15 @@ void Robot::task() {
   Motor left_motor;
   Motor right_motor;
 
-  left_motor.set_name("left motor");
+  left_motor.set_name("left_motor");
   right_motor.set_name("right_motor");
 
+  left_motor.pwm_value = &left_pwm;
+  left_motor.encoder_delta_sum_value = &left_encoder_delta_sum;
   left_motor.set_control_func(left_motor_set, left_get_delta_pulse);
+
+  right_motor.pwm_value = &right_pwm;
+  right_motor.encoder_delta_sum_value = &right_encoder_delta_sum;
   right_motor.set_control_func(right_motor_set, right_get_delta_pulse);
 
   left_motor.set_speed_pid({
@@ -320,8 +336,7 @@ void Motor::set_target(float speed, float position) {
   change_target_flag_ = 1;
   motor_working_flag_ = 1;
 }
-void Motor::set_control_func(void (*set_pwm_func)(int16_t),
-                             int (*get_delta_pulse_func)()) {
+void Motor::set_control_func(void (*set_pwm_func)(int16_t, int16_t*), int (*get_delta_pulse_func)(int16_t*)) {
   set_pwm_ = set_pwm_func;
   get_delta_pulse_ = get_delta_pulse_func;
 }
@@ -332,13 +347,11 @@ void Motor::start() {
 
 void Motor::task() {
 
-  PID speed_pid(speed_.kp, speed_.ki, speed_.kd, -(float)MOTOR_MAX_PWM,
-                (float)MOTOR_MAX_PWM);
+  PID speed_pid(speed_.kp, speed_.ki, speed_.kd, -(float)MOTOR_MAX_PWM, (float)MOTOR_MAX_PWM);
   speed_pid.set_target(0.0);
   speed_pid.setIntegralLimits(-10.0f, 10.0f);
 
-  PID position_pid(position_.kp, position_.ki, position_.kd,
-                   -(float)MOTOR_MAX_PWM, (float)MOTOR_MAX_PWM);
+  PID position_pid(position_.kp, position_.ki, position_.kd, -(float)MOTOR_MAX_PWM, (float)MOTOR_MAX_PWM);
   position_pid.set_target(0.0);
   position_pid.setIntegralLimits(-100.0f, 100.0f);
 
@@ -369,7 +382,7 @@ void Motor::task() {
     }
 
     // --- Get delta pulse ---
-    int delta_pulse = get_delta_pulse_();
+    int delta_pulse = get_delta_pulse_(encoder_delta_sum_value);
 
     // --- Get delta time <S> ---
     uint64_t now = esp_timer_get_time();
@@ -391,8 +404,7 @@ void Motor::task() {
     if (abs(out_speed) > abs(speed_limit))
       out_speed = speed_limit;
 
-    if (abs(abs(global_position_) - abs(target_position_)) <
-        1.0 / WHEEL_DIAMETER)
+    if (abs(abs(global_position_) - abs(target_position_)) < 1.0 / WHEEL_DIAMETER)
       motor_working_flag_ = 0;
 
       // --- Speed set ---
@@ -429,7 +441,7 @@ void Motor::task() {
     // --- Motor set ---
     if (abs(filtered_pwm) < (float)MOTOR_DEADBAND_PWM || !motor_working_flag_)
       filtered_pwm = 0;
-    set_pwm_((int16_t)filtered_pwm);
+    set_pwm_((int16_t)filtered_pwm, pwm_value);
 
     if (name_[0] == 'r') {
 

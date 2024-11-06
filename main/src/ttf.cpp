@@ -4,6 +4,7 @@
 #include "vl53l0x.hpp"
 
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <cstdint>
@@ -30,9 +31,11 @@ void Ttf::set_interval(uint8_t interval){
   interval_changed = true;
 }
 
-void Ttf::get_laser_data(uint16_t laser_buff[10]) {
-  for (size_t i = 0; i < 10; i++)
+void Ttf::get_laser_data(uint16_t laser_buff[10], uint64_t laser_timestamps_buff[10]) {
+  for (size_t i = 0; i < 10; i++) {
     laser_buff[i] = laser_values[i];
+    laser_timestamps_buff[i] = laser_timestamps[i];
+  }
 }
 
 esp_err_t Ttf::i2c_switch_to_ch(uint8_t ch) {
@@ -100,6 +103,8 @@ void Ttf::task() {
         laser_values[i] = buff;
       else
         laser_values[i] = 0xFFFF;
+
+      laser_timestamps[i] = esp_timer_get_time();
 
       if (sensor[i].timeoutOccurred())
         ESP_LOGW(TAG, "Sensor %d, timeout...", i);

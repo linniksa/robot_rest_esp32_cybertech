@@ -263,9 +263,13 @@ void Robot::task() {
   left_motor.start();
   right_motor.start();
 
+  uint64_t motor_time_deadline = 0;
+
   while (true) {
     cmd_t cmd;
     if (xQueueReceive(cmds_queue, &cmd, 0) == pdTRUE) {
+      motor_time_deadline = 0
+
       if (cmd.speed > MOTOR_MAX_SPEED)
         cmd.speed = MOTOR_MAX_SPEED;
       if (cmd.speed < -MOTOR_MAX_SPEED)
@@ -293,6 +297,11 @@ void Robot::task() {
         left_motor.set_target(-target_speed, -target_turns);
         right_motor.set_target(target_speed, target_turns);
         break;
+      case raw:
+        motor_time_deadline = esp_timer_get_time() + cmd.time * 1000;
+        left_motor_set(cmd.left_velocity);
+        right_motor_set(cmd.right_velocity);
+        break;
       case breack:
         // ???
         break;
@@ -300,7 +309,23 @@ void Robot::task() {
       }
     }
 
-    DELAY(100);
+    int delay = 100 // ms
+
+    if (motor_time_deadline > 0) {
+        uint64_t current_time = esp_timer_get_time();
+        if (current_time >= motor_time_deadline) {
+            motor_time_deadline = 0;
+            left_motor_set(0);
+            right_motor_set(0);
+        } else {
+            uint64_t time_left = (motor_time_deadline - current_time) / 1000;
+            if (time_left < delay) {
+                delay = time_left;
+            }
+        }
+    }
+
+    DELAY(delay);
   }
 }
 

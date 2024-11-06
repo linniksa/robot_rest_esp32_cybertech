@@ -131,11 +131,10 @@ esp_err_t Server::motor_put_handler(httpd_req_t *req) {
 
   cJSON *json_left_motor = cJSON_GetObjectItem(json, "l");
   cJSON *json_right_motor = cJSON_GetObjectItem(json, "r");
-  cJSON *json_left_time = cJSON_GetObjectItem(json, "l_time");
-  cJSON *json_right_time = cJSON_GetObjectItem(json, "r_time");
+  cJSON *json_time = cJSON_GetObjectItem(json, "time");
 
   if (!cJSON_IsNumber(json_left_motor) || !cJSON_IsNumber(json_right_motor) ||
-      !cJSON_IsNumber(json_left_time) || !cJSON_IsNumber(json_right_time)) {
+      !cJSON_IsNumber(json_time) {
     cJSON_Delete(json);
     httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid motor values");
     return ESP_FAIL;
@@ -151,19 +150,23 @@ esp_err_t Server::motor_put_handler(httpd_req_t *req) {
     return ESP_FAIL;
   }
 
-  int32_t l_time_value = json_left_time->valueint;
-  int32_t r_time_value = json_right_time->valueint;
+  int32_t time_value = json_time->valueint;
 
-  if (l_time_value < 0 || l_time_value > 60 * 60 * 1000 || r_time_value < 0 ||
-      r_time_value > 60 * 60 * 1000) {
+  if (time_value < 0 || time_value > 60 * 60 * 1000) {
     cJSON_Delete(json);
     httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Motor time is invalid");
     return ESP_FAIL;
   }
 
-  ESP_LOGI(TAG, "Set Motor Left:%d, Right:%d, L_time:%d, R_time:%d.",
-           (int)l_value, (int)r_value, (int)l_time_value, (int)r_time_value);
-  // motors.motors_command(l_value, r_value, l_time_value, r_time_value);
+  ESP_LOGI(TAG, "Set Motor Left:%d, Right:%d, time:%d.",
+           (int)l_value, (int)r_value, (int)time_value);
+  // motors.motors_command(l_value, r_value, time_value, r_time_value);
+  cmd_t cmd = {}
+  cmd.dir = Robot::raw
+  cmd.time = time_value
+  cmd.left_velocity = l_value
+  cmd.right_velocity = r_value
+  robot.send_cmd_to_queue(cmd);
 
   cJSON_Delete(json);
 
@@ -410,7 +413,7 @@ esp_err_t Server::sensor_config_post_handler(httpd_req_t *req) {
 
   ttf.set_interval(json_interval->valueint);
   ttf.set_enabled_sensors(enabled_sensors);
-  
+
   cJSON_Delete(json);
 
   httpd_resp_sendstr(req, "");

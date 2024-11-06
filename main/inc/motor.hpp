@@ -30,13 +30,17 @@ private:
   static int left_get_delta_pulse();
 
 public:
-  enum move_directions { forward, backward, left, right, breack, invalid };
+  enum move_directions { forward, backward, left, right, breack, raw, invalid };
 
   // enum { free, busy } state; // ????
   typedef struct {
     move_directions dir;
     int32_t opt;
     int32_t speed;
+
+    int32_t left_velocity;
+    int32_t right_velocity;
+    int32_t time;
   } cmd_t;
   QueueHandle_t cmds_queue;
 

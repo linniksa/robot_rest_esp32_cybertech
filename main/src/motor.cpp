@@ -21,6 +21,9 @@ pcnt_unit_handle_t pcnt_unit_left;
 pcnt_unit_handle_t pcnt_unit_right;
 bool pid_enabled = true;
 
+Motor left_motor;
+Motor right_motor;
+
 Robot::~Robot() {}
 Robot::Robot() {
   pcnt_unit_left = NULL;
@@ -246,19 +249,19 @@ TimerHandle_t motor_r_timer;
 void motor_l_timer_callback(TimerHandle_t xTimer) {
   Robot *pInstance = static_cast<Robot *>(pvTimerGetTimerID(xTimer));
   if (pInstance != nullptr)
-    pInstance->left_motor_set(0);
+    pInstance->left_motor_set(0, left_motor.pwm_value);
 }
 
 void motor_r_timer_callback(TimerHandle_t xTimer) {
   Robot *pInstance = static_cast<Robot *>(pvTimerGetTimerID(xTimer));
   if (pInstance != nullptr)
-    pInstance->right_motor_set(0);
+    pInstance->right_motor_set(0, right_motor.pwm_value);
 }
 
 void Robot::set_PWM(int left, int right, int left_time, int right_time){
   pid_enabled = false;
-  left_motor_set(left);
-  right_motor_set(right);
+  left_motor_set(left, left_motor.pwm_value);
+  right_motor_set(right, right_motor.pwm_value);
   if (left_time == 0) {
     if (motor_l_timer != NULL)
       xTimerStop(motor_l_timer, 0);
@@ -288,9 +291,6 @@ void Robot::set_PWM(int left, int right, int left_time, int right_time){
 // --- Control task ---
 
 void Robot::task() {
-  Motor left_motor;
-  Motor right_motor;
-
   left_motor.set_name("left_motor");
   right_motor.set_name("right_motor");
 
@@ -418,7 +418,7 @@ void Motor::task() {
   while (true) {
 
     if(!pid_enabled){
-      int delta_pulse = get_delta_pulse_();
+      int delta_pulse = get_delta_pulse_(encoder_delta_sum_value);
       global_position_ += ((float)delta_pulse / (float)MOTOR_RATIO);
       target_position_ = global_position_;
       vTaskDelay(pdMS_TO_TICKS(10));

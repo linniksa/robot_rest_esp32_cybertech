@@ -141,8 +141,8 @@ esp_err_t Server::motor_put_handler(httpd_req_t *req) {
     return ESP_FAIL;
   }
 
-  int16_t l_value = 0 - json_left_motor->valueint;
-  int16_t r_value = 0 - json_right_motor->valueint;
+  int16_t l_value = json_left_motor->valueint;
+  int16_t r_value = json_right_motor->valueint;
 
   if (l_value < -255 || l_value > 255 || r_value < -255 || r_value > 255) {
     cJSON_Delete(json);
@@ -163,7 +163,7 @@ esp_err_t Server::motor_put_handler(httpd_req_t *req) {
 
   ESP_LOGI(TAG, "Set Motor Left:%d, Right:%d, L_time:%d, R_time:%d.",
            (int)l_value, (int)r_value, (int)l_time_value, (int)r_time_value);
-  // motors.motors_command(l_value, r_value, l_time_value, r_time_value);
+  robot.set_PWM(l_value, r_value, l_time_value, r_time_value);
 
   cJSON_Delete(json);
 

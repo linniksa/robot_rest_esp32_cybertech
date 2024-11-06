@@ -24,8 +24,6 @@ private:
                         gpio_num_t gpio_enc_b);
 
   static int get_delta_pulse(pcnt_unit_handle_t pcnt_unit, int &last_pulse);
-  static void right_motor_set(int16_t right_motor_pwm);
-  static void left_motor_set(int16_t left_motor_pwm);
   static int right_get_delta_pulse();
   static int left_get_delta_pulse();
 
@@ -47,7 +45,9 @@ public:
   Robot();
   ~Robot();
   void init();
-
+  void set_PWM(int left, int right, int left_time, int right_time);
+  static void right_motor_set(int16_t right_motor_pwm);
+  static void left_motor_set(int16_t left_motor_pwm);
   void send_cmd_to_queue(cmd_t cmd) {
     xQueueSend(cmds_queue, (void *)&cmd, (TickType_t)0);
   }
